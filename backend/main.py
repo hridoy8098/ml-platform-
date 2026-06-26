@@ -97,19 +97,19 @@ def error_response(msg: str, code: str = "INTERNAL_ERROR") -> Dict:
 def start_job(fn, *args, **kwargs) -> str:
     jid = str(uuid.uuid4())[:8]
     with job_status_lock:
-        job_status[jid] = {"status": "running", "progress": 0, "step": "Starting...", "result": None}
+        job_status[jid] = {"status": "running", "progress": 0, "step": "Starting...", "result": None, "_ts": time.time()}
 
     def _run():
         try:
             result = fn(*args, job_status=job_status, job_id=jid, **kwargs)
             with job_status_lock:
                 if jid in job_status:
-                    job_status[jid].update({"status": "done", "progress": 100, "result": result})
+                    job_status[jid].update({"status": "done", "progress": 100, "result": result, "_ts": time.time()})
         except Exception as e:
             log.error(f"Job {jid} failed: {e}", exc_info=True)
             with job_status_lock:
                 if jid in job_status:
-                    job_status[jid].update({"status": "error", "result": {"success": False, "message": str(e)}})
+                    job_status[jid].update({"status": "error", "result": {"success": False, "message": str(e)}, "_ts": time.time()})
 
     future = job_executor.submit(_run)
     future.add_done_callback(lambda f: _cleanup_old_jobs())
