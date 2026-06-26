@@ -1,0 +1,124 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --cyan:       #00f0ff;
+  --cyan-dim:   rgba(0, 240, 255, 0.12);
+  --magenta:    #ff00ff;
+  --blue:       #0088ff;
+  --green:      #00ff88;
+  --red:        #ff3355;
+  --orange:     #ff8800;
+  --purple:     #aa44ff;
+  --yellow:     #ffee00;
+
+  --bg-1:       #05050f;
+  --bg-2:       #0a0a1a;
+  --bg-3:       #0f0f25;
+  --surface:    rgba(10, 20, 30, 0.5);
+  --surface-h:  rgba(15, 25, 40, 0.7);
+  --border:     rgba(0, 240, 255, 0.12);
+  --border-glow: rgba(0, 240, 255, 0.25);
+  --text-1:     #e0e8ff;
+  --text-2:     #7088b0;
+  --text-3:     #3a4a6a;
+
+  --font:       'Rajdhani', sans-serif;
+  --font-hud:   'Orbitron', monospace;
+  --font-mono:  'Share Tech Mono', monospace;
+  --radius:     8px;
+  --radius-lg:  14px;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg-1);
+  color: var(--text-1);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Grid Background ──────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(rgba(0, 240, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.025) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+  animation: gridScroll 10s linear infinite;
+}
+
+@keyframes gridScroll {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(50px, 50px); }
+}
+
+/* ── Scanlines ───────────────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0, 240, 255, 0.012) 2px, rgba(0, 240, 255, 0.012) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+#root { position: relative; z-index: 2; }
+
+/* ── Scrollbar ────────────────────────────────────── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 240, 255, 0.4); }
+
+/* ── Animations ───────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes scanLine {
+  0%   { top: -10%; }
+  100% { top: 110%; }
+}
+
+@keyframes glitch {
+  0%   { transform: translate(0); }
+  20%  { transform: translate(-1px, 1px); }
+  40%  { transform: translate(1px, -1px); }
+  60%  { transform: translate(-1px, -1px); }
+  80%  { transform: translate(1px, 1px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes radarSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes dataFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}

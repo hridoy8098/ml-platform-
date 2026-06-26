@@ -1,0 +1,19 @@
+version: "3.9"
+
+services:
+  ml-platform:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8000
+      - MAX_UPLOAD_SIZE_MB=100
+      - MAX_CONCURRENT_JOBS=3
+      - LOG_LEVEL=INFO
+    volumes:
+      - ml_platform_data:/root/ml_platform
+
+volumes:
+  ml_platform_data:
