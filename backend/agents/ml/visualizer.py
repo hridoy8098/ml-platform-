@@ -141,6 +141,7 @@ class Visualizer:
     def roc_curve_data(self, model_id: str, session_id: str, data_engine) -> Dict:
         try:
             from sklearn.metrics import roc_curve, auc
+            import numpy as np
             artifact = _load_artifact(self.models_dir, {}, model_id)
             if not isinstance(artifact, dict) or not hasattr(artifact.get("model"), "predict_proba"):
                 raise MLError("NO_PROBA", "Model does not support probability predictions.")
@@ -152,6 +153,10 @@ class Visualizer:
             if target not in df.columns:
                 raise MLError("TARGET_MISSING", f"Target '{target}' not found.")
             X_s = scaler.transform(df[features])
+            classes = sorted(df[target].unique().tolist())
+            if len(classes) != 2:
+                raise MLError("NOT_BINARY", "ROC curve requires binary classification. "
+                              f"Found {len(classes)} classes: {classes}")
             y_score = model.predict_proba(X_s)[:, 1]
             fpr, tpr, _ = roc_curve(df[target], y_score)
             roc_auc_val = float(auc(fpr, tpr))
