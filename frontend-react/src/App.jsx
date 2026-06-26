@@ -90,7 +90,7 @@ export default function App() {
             ONLINE
           </span>
           <HudClock />
-          <span style={{ color: 'rgba(0,240,255,0.3)', fontSize: 9 }}>v1.0 // REACT_HUD</span>
+          <span style={{ color: 'rgba(0,240,255,0.3)', fontSize: 9 }}>v1.0</span>
         </div>
       </header>
 
