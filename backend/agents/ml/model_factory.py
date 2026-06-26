@@ -8,10 +8,12 @@ from config import settings
 log = logging.getLogger("ml-platform.model_factory")
 
 
-def _compute_model_hash(artifact: dict) -> str:
-    import pickle
-    data = pickle.dumps(artifact.get("model", ""))
-    return hashlib.sha256(data).hexdigest()
+def _compute_model_hash(model_path: Path) -> str:
+    actual = hashlib.sha256()
+    with open(model_path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            actual.update(chunk)
+    return actual.hexdigest()
 
 
 def _verify_model_integrity(filepath: Path, expected_hash: str) -> bool:
@@ -44,7 +46,7 @@ class ModelFactory:
         model_path = self.models_dir / f"{model_id}.joblib"
         libs = self._load()
         libs["joblib"].dump(artifact, model_path)
-        meta["_model_hash"] = _compute_model_hash(artifact)
+        meta["_model_hash"] = _compute_model_hash(model_path)
         self._save_metadata(model_id, meta)
         self.active_models[model_id] = artifact
 
