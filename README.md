@@ -1,4 +1,13 @@
-# 🚀 ML Platform
+---
+title: ML Platform
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
+# ML Platform
 
 **Kaggle-style Machine Learning Platform** — Upload datasets, clean & analyze data, train ML models, evaluate them, and make predictions — all from a sleek HUD/Cyber-themed dashboard.
 
@@ -223,46 +232,55 @@ MLPClassifier, MLPRegressor
 
 ---
 
-## 🌍 Deployment (Live)
+## 🌍 Deployment (Live — HuggingFace Spaces)
 
-### Option 1: Render.com (Free & Easiest — Recommended)
+**[HuggingFace Spaces](https://huggingface.co/spaces)** — সম্পূর্ণ ফ্রি, Docker support, ML-optimized, **কখনো sleep হয় না**।
 
-1. Push code to GitHub
-2. Go to [render.com](https://render.com) → Sign up with GitHub
-3. Click **New +** → **Blueprint** → Connect your `ml-platform` repo
-4. Render auto-detects `render.yaml` and sets everything up
-5. Wait 5-10 minutes for build & deploy
-6. Your app will be live at `https://ml-platform.onrender.com`
+### এক ক্লিকে Deploy করুন:
 
-> **Note:** Render free tier sleeps after 15 min of inactivity. First request after sleep takes ~30s to wake up.
+### Step 1: Push to GitHub
 
-### Option 2: Railway.app
+```bash
+git push origin main
+```
 
-1. Go to [railway.app](https://railway.app) → Sign up with GitHub
-2. Click **New Project** → **Deploy from GitHub repo**
-3. Select your `ml-platform` repo
-4. Set build command: `cd frontend-react && npm install && npm run build && cd ../backend && pip install -r requirements.txt`
-5. Set start command: `cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT`
-6. Add env vars: `DEBUG=false`, `MAX_UPLOAD_SIZE_MB=10`, `CORS_ORIGINS=https://your-app.up.railway.app`
+### Step 2: Create HuggingFace Space
 
-### Option 3: Hugging Face Spaces (Docker)
+1. **[huggingface.co](https://huggingface.co)** → Sign up (GitHub account দিয়ে)
+2. উপরের ডান দিকে আপনার profile pic → **New Space**
+3. **Space Name:** `ml-platform` (যেকোনো নাম দিন)
+4. **License:** `MIT`
+5. **Space SDK:** **Docker** সিলেক্ট করুন
+6. **Docker Template:** **Blank** সিলেক্ট করুন
+7. **Create Space** বাটনে ক্লিক করুন
 
-1. Go to [huggingface.co/spaces](https://huggingface.co/spaces) → Create new Space
-2. Choose **Docker** as SDK → Select **Blank** template
-3. Connect your GitHub repo
-4. The existing `Dockerfile` will be used automatically
-5. Space builds and deploys — free forever with GPU option
+### Step 3: Connect GitHub Repository
 
-### Important Environment Variables for Production
+1. Space created হওয়ার পর **Settings** tab এ যান
+2. **Repository link** section → **Connect Git repository**
+3. আপনার GitHub account authorize করুন
+4. আপনার `ml-platform` repo সিলেক্ট করুন
+5. **Save** দিন
+
+### Step 4: Auto-Deploy
+
+HuggingFace auto-detect করবে `Dockerfile` এবং build শুরু করবে।
+- **Build time:** ~5-8 মিনিট (প্রথমবার)
+- **Live URL:** `https://your-username-ml-platform.hf.space`
+- ✅ **Auto-update:** GitHub-এ push করলেই auto-deploy হবে
+
+> **⏱️ Auto-sleep করে না — 24/7 ফ্রি চলবে!**
+
+### Environment Variables (Optional)
+
+Space এর **Settings → Repository secrets** এ এগুলো set করতে পারেন:
 
 | Variable | Recommended Value | Why |
 |----------|------------------|-----|
-| `DEBUG` | `false` | Disable hot-reload |
-| `MAX_UPLOAD_SIZE_MB` | `10` | Lower limit for free tier |
-| `CORS_ORIGINS` | `https://your-domain.com` | Security |
+| `MAX_UPLOAD_SIZE_MB` | `10` | Free tier memory limit |
 | `LOG_LEVEL` | `WARNING` | Reduce log noise |
 | `MAX_CONCURRENT_JOBS` | `1` | Stay within free tier RAM |
-| `VITE_API_URL` | `https://your-domain.com` | Frontend API calls |
+| `API_KEY` | (optional) | Set for API key authentication |
 
 ---
 
