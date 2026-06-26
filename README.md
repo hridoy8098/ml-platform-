@@ -223,6 +223,49 @@ MLPClassifier, MLPRegressor
 
 ---
 
+## 🌍 Deployment (Live)
+
+### Option 1: Render.com (Free & Easiest — Recommended)
+
+1. Push code to GitHub
+2. Go to [render.com](https://render.com) → Sign up with GitHub
+3. Click **New +** → **Blueprint** → Connect your `ml-platform` repo
+4. Render auto-detects `render.yaml` and sets everything up
+5. Wait 5-10 minutes for build & deploy
+6. Your app will be live at `https://ml-platform.onrender.com`
+
+> **Note:** Render free tier sleeps after 15 min of inactivity. First request after sleep takes ~30s to wake up.
+
+### Option 2: Railway.app
+
+1. Go to [railway.app](https://railway.app) → Sign up with GitHub
+2. Click **New Project** → **Deploy from GitHub repo**
+3. Select your `ml-platform` repo
+4. Set build command: `cd frontend-react && npm install && npm run build && cd ../backend && pip install -r requirements.txt`
+5. Set start command: `cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT`
+6. Add env vars: `DEBUG=false`, `MAX_UPLOAD_SIZE_MB=10`, `CORS_ORIGINS=https://your-app.up.railway.app`
+
+### Option 3: Hugging Face Spaces (Docker)
+
+1. Go to [huggingface.co/spaces](https://huggingface.co/spaces) → Create new Space
+2. Choose **Docker** as SDK → Select **Blank** template
+3. Connect your GitHub repo
+4. The existing `Dockerfile` will be used automatically
+5. Space builds and deploys — free forever with GPU option
+
+### Important Environment Variables for Production
+
+| Variable | Recommended Value | Why |
+|----------|------------------|-----|
+| `DEBUG` | `false` | Disable hot-reload |
+| `MAX_UPLOAD_SIZE_MB` | `10` | Lower limit for free tier |
+| `CORS_ORIGINS` | `https://your-domain.com` | Security |
+| `LOG_LEVEL` | `WARNING` | Reduce log noise |
+| `MAX_CONCURRENT_JOBS` | `1` | Stay within free tier RAM |
+| `VITE_API_URL` | `https://your-domain.com` | Frontend API calls |
+
+---
+
 ## 🔧 Configuration
 
 All settings are configurable via environment variables (see `.env.example`):
