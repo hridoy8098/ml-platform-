@@ -11,8 +11,8 @@ scipy>=1.11.0
 python-dotenv>=1.0.0
 
 # Computer Vision
-tensorflow>=2.13.0
-opencv-python-headless>=4.8.0
+tensorflow==2.17.1
+opencv-python-headless==4.10.0.84
 pillow>=10.0.0
 pydicom>=2.4.0
 matplotlib>=3.7.0
