@@ -48,7 +48,10 @@ class ModelFactory:
         libs["joblib"].dump(artifact, model_path)
         meta["_model_hash"] = _compute_model_hash(model_path)
         self._save_metadata(model_id, meta)
-        self.active_models[model_id] = artifact
+        from threading import Lock
+        self._active_lock = getattr(self, '_active_lock', Lock())
+        with self._active_lock:
+            self.active_models[model_id] = artifact
 
     def _save_metadata(self, model_id: str, meta: dict):
         tmp = self.models_dir / f"{model_id}.json.tmp"
@@ -606,38 +609,44 @@ class ModelFactory:
             for op in operations:
                 t = op.get("type", "")
                 if t == "add_ratio":
-                    a, b, name = op["col_a"], op["col_b"], op.get("name", f"{a}_div_{b}")
+                    a = op.get("col_a", ""); b = op.get("col_b", "")
                     if a in df.columns and b in df.columns:
+                        name = op.get("name", f"{a}_div_{b}")
                         df[name] = df[a] / (df[b].replace(0, np.nan))
                         applied.append(f"Added {name} = {a}/{b}")
                 elif t == "add_product":
-                    a, b, name = op["col_a"], op["col_b"], op.get("name", f"{a}_x_{b}")
+                    a = op.get("col_a", ""); b = op.get("col_b", "")
                     if a in df.columns and b in df.columns:
+                        name = op.get("name", f"{a}_x_{b}")
                         df[name] = df[a] * df[b]
                         applied.append(f"Added {name} = {a}×{b}")
                 elif t == "add_sum":
-                    a, b, name = op["col_a"], op["col_b"], op.get("name", f"{a}_plus_{b}")
+                    a = op.get("col_a", ""); b = op.get("col_b", "")
                     if a in df.columns and b in df.columns:
+                        name = op.get("name", f"{a}_plus_{b}")
                         df[name] = df[a] + df[b]
                         applied.append(f"Added {name} = {a}+{b}")
                 elif t == "add_poly":
-                    col, deg, name = op["column"], op.get("degree", 2), op.get("name", f"{col}_sq")
+                    col = op.get("column", op.get("col_a", ""))
                     if col in df.columns:
+                        deg = op.get("degree", 2); name = op.get("name", f"{col}_sq")
                         df[name] = df[col] ** deg
                         applied.append(f"Added {name} = {col}^{deg}")
                 elif t == "binarize":
-                    col, thresh = op["column"], op.get("threshold", 0)
+                    col = op.get("column", op.get("col_a", ""))
                     if col in df.columns:
+                        thresh = op.get("threshold", 0)
                         df[f"{col}_bin"] = (df[col] > thresh).astype(int)
                         applied.append(f"Binarized {col} @ {thresh}")
                 elif t == "log_transform":
-                    col = op["column"]
+                    col = op.get("column", op.get("col_a", ""))
                     if col in df.columns:
                         df[f"log_{col}"] = np.log1p(df[col].clip(lower=0))
                         applied.append(f"Log-transformed {col}")
                 elif t == "rolling_mean":
-                    col, window = op["column"], op.get("window", 3)
+                    col = op.get("column", op.get("col_a", ""))
                     if col in df.columns:
+                        window = op.get("window", 3)
                         df[f"{col}_rm{window}"] = df[col].rolling(window, min_periods=1).mean()
                         applied.append(f"Rolling mean {col} w={window}")
             cleaned_id = f"{session_id}_fe"

@@ -15,7 +15,7 @@ class MLError(Exception):
         super().__init__(message)
 
     def to_dict(self):
-        return {"success": False, "error_code": self.code,
+        return {"success": False, "error": self.code,
                 "message": self.message, "suggestion": self.suggestion}
 
 class SessionCache:

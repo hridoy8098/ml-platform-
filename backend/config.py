@@ -39,6 +39,14 @@ class Settings:
     SCATTER_MAX_POINTS: int = int(os.getenv("SCATTER_MAX_POINTS", "1000"))
     CORRELATION_MAX_COLS: int = int(os.getenv("CORRELATION_MAX_COLS", "15"))
 
+    CV_UPLOADS_DIR: Path = BASE_DIR / "cv_uploads"
+    CV_MODELS_DIR: Path = Path.home() / "ml_platform" / "cv_models"
+    CV_MAX_IMAGE_DIM: int = int(os.getenv("CV_MAX_IMAGE_DIM", "512"))
+    CV_DEFAULT_EPOCHS: int = int(os.getenv("CV_DEFAULT_EPOCHS", "10"))
+    CV_BATCH_SIZE: int = int(os.getenv("CV_BATCH_SIZE", "16"))
+    CV_LEARNING_RATE: float = float(os.getenv("CV_LEARNING_RATE", "0.001"))
+    CV_MAX_UPLOAD_MB: int = int(os.getenv("CV_MAX_UPLOAD_MB", "500"))
+
     @property
     def MAX_UPLOAD_SIZE_BYTES(self) -> int:
         return self.MAX_UPLOAD_SIZE_MB * 1024 * 1024

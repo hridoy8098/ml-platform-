@@ -135,3 +135,44 @@ export async function getMLFeatureImportance(modelId) {
 export async function exportMLModel(modelId, format = 'joblib') {
   return apiPost('/ml/export-model', { model_id: modelId, format });
 }
+
+export async function uploadCVZip(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000);
+  try {
+    const res = await fetch(API + '/cv/upload', { method: 'POST', body: fd, signal: controller.signal });
+    if (!res.ok) return { success: false, message: `Upload failed (${res.status})` };
+    return res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') return { success: false, message: 'Upload timed out' };
+    return { success: false, message: err.message || 'Upload failed' };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function trainCVModel(params) {
+  return apiPost('/cv/train', params);
+}
+
+export async function predictCVImage(modelId, imagePath, sessionId) {
+  return apiPost('/cv/predict', { model_id: modelId, image_path: imagePath, session_id: sessionId });
+}
+
+export async function predictCVFolder(modelId, sessionId) {
+  return apiPost('/cv/predict-folder', { model_id: modelId, session_id: sessionId });
+}
+
+export async function listCVModels() {
+  return apiFetch('/cv/models');
+}
+
+export async function deleteCVModel(modelId) {
+  return apiPost('/cv/delete-model', { model_id: modelId });
+}
+
+export async function getCVSessionInfo(sessionId) {
+  return apiFetch(`/cv/sessions/${sessionId}`);
+}

@@ -17,6 +17,10 @@ frontend-react/dist_backup/
 # ML Platform
 backend/uploads/*
 !backend/uploads/.gitkeep
+backend/cv_uploads/*
+!backend/cv_uploads/.gitkeep
+backend/cv_models/*
+!backend/cv_models/.gitkeep
 backend/__pycache__/
 
 # Environment

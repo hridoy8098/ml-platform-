@@ -9,3 +9,10 @@ openpyxl>=3.1.0
 xgboost>=2.0.0
 scipy>=1.11.0
 python-dotenv>=1.0.0
+
+# Computer Vision
+tensorflow>=2.13.0
+opencv-python>=4.8.0
+pillow>=10.0.0
+pydicom>=2.4.0
+matplotlib>=3.7.0

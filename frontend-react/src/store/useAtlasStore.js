@@ -24,6 +24,18 @@ const useAtlasStore = create(
 
       mlPlotData: null,
       setMLPlotData: (data) => set({ mlPlotData: data }),
+
+      cvSession: null,
+      setCVSession: (data) => set({ cvSession: data }),
+
+      cvModels: [],
+      setCVModels: (models) => set({ cvModels: models }),
+
+      cvTrainingResult: null,
+      setCVTrainingResult: (data) => set({ cvTrainingResult: data }),
+
+      cvPredictionResult: null,
+      setCVPredictionResult: (data) => set({ cvPredictionResult: data }),
     }),
     {
       name: 'ml-platform-storage',
@@ -34,6 +46,7 @@ const useAtlasStore = create(
           preview: undefined,
           columns: undefined,
         } : null,
+        cvModels: state.cvModels,
       }),
     }
   )

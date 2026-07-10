@@ -1,4 +1,4 @@
-import uuid, logging, hashlib, time
+import uuid, logging, time
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
@@ -23,6 +23,8 @@ EXPORTS_DIR  = settings.EXPORTS_DIR
 
 for d in [UPLOADS_DIR, MODELS_DIR, SESSIONS_DIR, EXPORTS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
+settings.CV_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+settings.CV_MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 _ml_libs = None
 
@@ -58,6 +60,16 @@ predictor     = Predictor(MODELS_DIR, active_models, load_ml_libs, model_factory
 deployer      = Deployer(MODELS_DIR, active_models, model_factory)
 visualizer    = Visualizer(MODELS_DIR, load_ml_libs)
 
+from agents.cv.data_engine   import CVDataEngine
+from agents.cv.model_factory  import CVModelFactory
+from agents.cv.evaluator      import CVEvaluator
+from agents.cv.predictor      import CVPredictor
+
+cv_data_engine   = CVDataEngine(settings.CV_UPLOADS_DIR)
+cv_model_factory = CVModelFactory(settings.CV_MODELS_DIR, settings.CV_UPLOADS_DIR)
+cv_evaluator     = CVEvaluator()
+cv_predictor     = CVPredictor(settings.CV_MODELS_DIR, cv_model_factory)
+
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
 app.add_middleware(CORSMiddleware,
@@ -83,16 +95,9 @@ if FRONTEND_DIR.exists():
             return FileResponse(str(index))
         return {"error": "Frontend not found"}
 
-def compute_hash(filepath: Path) -> str:
-    h = hashlib.sha256()
-    with open(filepath, "rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-def error_response(msg: str, code: str = "INTERNAL_ERROR") -> Dict:
+def error_response(msg: str, code: str = "INTERNAL_ERROR", suggestion: str = "") -> Dict:
     log.warning(f"{code}: {msg}")
-    return {"success": False, "error": code, "message": "An unexpected error occurred. Check logs for details."}
+    return {"success": False, "error": code, "message": msg, "suggestion": suggestion}
 
 def start_job(fn, *args, **kwargs) -> str:
     jid = str(uuid.uuid4())[:8]
@@ -122,12 +127,6 @@ def _cleanup_old_jobs():
                  if v.get("status") in ("done", "error") and v.get("_ts", 0) < cutoff]
         for k in stale:
             del job_status[k]
-
-def _safe_result(jid, result):
-    with job_status_lock:
-        if jid in job_status:
-            job_status[jid]["_ts"] = time.time()
-    return result
 
 ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls", ".json", ".parquet", ".feather"}
 
@@ -240,7 +239,7 @@ async def upload_dataset(file: UploadFile = File(...)):
                     "message": f"File exceeds {settings.MAX_UPLOAD_SIZE_MB}MB limit"}
 
         session_id = str(uuid.uuid4())[:12]
-        safe_name = Path(file.filename).name.replace("..", "").replace("/", "").replace("\\", "")
+        safe_name = Path(file.filename).name
         filepath = UPLOADS_DIR / f"{session_id}{ext}"
         filepath.write_bytes(content)
         log.info(f"Uploaded {safe_name} ({len(content):,} bytes) → {filepath.name}")
@@ -414,6 +413,113 @@ async def feature_importance(req: ImportanceReq):
 @app.post("/ml/export-model")
 async def export_model(req: ExportReq):
     return deployer.export_model(req.model_id, req.format)
+
+class CVTrainReq(BaseReq):
+    session_id: str
+    task_type: str = "classification"
+    epochs: int = 0
+    batch_size: int = 0
+    learning_rate: float = 0.0
+
+class CVPredictReq(BaseReq):
+    model_id: str
+    image_path: str
+    session_id: Optional[str] = None
+
+class CVDeleteReq(BaseReq):
+    model_id: str
+
+class CVPredictFolderReq(BaseReq):
+    model_id: str
+    session_id: str
+
+@app.post("/cv/upload")
+async def cv_upload(file: UploadFile = File(...)):
+    try:
+        content = await file.read()
+        if not file.filename or not file.filename.lower().endswith(".zip"):
+            return error_response("Only .zip files accepted", "INVALID_FORMAT")
+        if len(content) > settings.CV_MAX_UPLOAD_MB * 1024 * 1024:
+            return error_response(f"File exceeds {settings.CV_MAX_UPLOAD_MB}MB limit", "FILE_TOO_LARGE")
+        import tempfile
+        tmp = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
+        tmp.write(content)
+        tmp.close()
+        result = cv_data_engine.extract_and_process(str(tmp.name))
+        Path(tmp.name).unlink(missing_ok=True)
+        if not result.get("success", False):
+            return result
+        result["filename"] = file.filename
+        return result
+    except Exception as e:
+        log.error(f"CV upload failed: {e}", exc_info=True)
+        return error_response(str(e), "CV_UPLOAD_ERROR")
+
+@app.post("/cv/train")
+async def cv_train(req: CVTrainReq):
+    try:
+        epochs = req.epochs or settings.CV_DEFAULT_EPOCHS
+        batch_size = req.batch_size or settings.CV_BATCH_SIZE
+        lr = req.learning_rate if req.learning_rate > 0 else settings.CV_LEARNING_RATE
+        if req.task_type not in ("classification", "segmentation"):
+            return error_response("task_type must be 'classification' or 'segmentation'", "INVALID_PARAM")
+        def _train(session_id, task_type, epochs, batch_size, lr, job_status=None, job_id=None):
+            X, meta = cv_data_engine.get_training_data(session_id)
+            if not meta.get("success", True):
+                import json
+                return meta
+            from agents.cv.model_factory import CVModelFactory
+            factory = CVModelFactory(settings.CV_MODELS_DIR, settings.CV_UPLOADS_DIR)
+            result = factory.train(session_id, task_type, epochs, batch_size, learning_rate=lr,
+                                    job_status=job_status, job_id=job_id)
+            return result
+        jid = start_job(_train, req.session_id, req.task_type, epochs, batch_size, lr)
+        return {"success": True, "job_id": jid, "message": f"CV {req.task_type} training started"}
+    except Exception as e:
+        log.error(f"CV train failed: {e}", exc_info=True)
+        return error_response(str(e), "CV_TRAIN_ERROR")
+
+@app.post("/cv/predict")
+async def cv_predict(req: CVPredictReq):
+    try:
+        result = cv_predictor.predict(req.model_id, req.image_path, req.session_id)
+        return result
+    except Exception as e:
+        log.error(f"CV predict failed: {e}", exc_info=True)
+        return error_response(str(e), "CV_PREDICT_ERROR")
+
+@app.post("/cv/predict-folder")
+async def cv_predict_folder(req: CVPredictFolderReq):
+    try:
+        result = cv_predictor.predict_on_folder(req.model_id, req.session_id)
+        return result
+    except Exception as e:
+        log.error(f"CV predict folder failed: {e}", exc_info=True)
+        return error_response(str(e), "CV_PREDICT_FOLDER_ERROR")
+
+@app.get("/cv/models")
+async def cv_list_models():
+    try:
+        return cv_model_factory.list_models()
+    except Exception as e:
+        log.error(f"CV list models failed: {e}", exc_info=True)
+        return error_response(str(e), "CV_LIST_MODELS_ERROR")
+
+@app.post("/cv/delete-model")
+async def cv_delete_model(req: CVDeleteReq):
+    try:
+        return cv_model_factory.delete_model(req.model_id)
+    except Exception as e:
+        log.error(f"CV delete model failed: {e}", exc_info=True)
+        return error_response(str(e), "CV_DELETE_MODEL_ERROR")
+
+@app.get("/cv/sessions/{session_id}")
+async def cv_session_info(session_id: str):
+    try:
+        return cv_data_engine.get_session_info(session_id)
+    except Exception as e:
+        log.error(f"CV session info failed: {e}", exc_info=True)
+        return error_response(str(e), "CV_SESSION_ERROR")
 
 @app.get("/health")
 async def health():
